@@ -1,1108 +1,507 @@
+제공해주신 기존 코드의 모든 기능(마인크래프트 럭키블럭 배경, 카드별 이모지 팝업 애니메이션, 가격 표시, 3가지 상세 모달 창)을 **완벽하게 유지한 채**, "지금 주문하기" 버튼을 누르면 **'딸깍 주문 완료. 행운 배송'** 멘트가 알림창(alert)으로 뜨도록 수정했습니다.
 
+전체 `index.html` 소스 코드입니다.
+
+```html
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>딸깍 - AI로 딸깍, 논산 딸기</title>
+    <title>딸깍 | 인생 역전 랜덤박스</title>
     <style>
-        /* Base Reset */
+        /* Reset & Base Styles */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
         }
 
         body {
-            background-color: #2B1B17;
-            color: #F5F5F0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #121212;
+            /* 마인크래프트 럭키블럭 스타일의 반복 패턴 배경 (Unsplash 무료 이미지 활용) */
+            background-image: linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.85)), url('https://images.unsplash.com/photo-1607988795691-3d0147b43231?q=80&w=1000&auto=format&fit=crop');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            color: #ffffff;
             line-height: 1.6;
             overflow-x: hidden;
         }
 
-        /* 멀티 페이지 구조 전환 스타일 */
-        .page {
-            display: none;
-            min-height: 100vh;
-        }
-
-        .page.active {
-            display: block;
-            animation: fadeIn 0.4s ease forwards;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Variables */
+        :root {
+            --primary-yellow: #FFD700;
+            --dark-bg: #121212;
+            --card-bg: rgba(30, 30, 30, 0.85);
+            --text-muted: #A0A0A0;
         }
 
         /* Header */
         header {
+            background-color: rgba(18, 18, 18, 0.95);
+            border-bottom: 1px solid #2A2A2A;
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 20px;
-            max-width: 768px;
-            margin: 0 auto;
-            border-bottom: 1px solid rgba(245, 245, 240, 0.1);
-        }
-
-        .logo-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            backdrop-filter: blur(5px);
         }
 
         .logo {
-            font-size: 24px;
+            font-size: 1.5rem;
             font-weight: 800;
-            color: #E62A4D;
-            letter-spacing: -1px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
+            color: var(--primary-yellow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .slogan {
-            font-size: 13px;
-            font-weight: 400;
-            color: #FF7E36;
-            background: rgba(255, 126, 54, 0.1);
-            padding: 2px 8px;
-            border-radius: 12px;
+            font-size: 0.9rem;
+            color: #ffffff;
+            font-weight: 500;
         }
 
         /* Hero Section */
         .hero {
-            position: relative;
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 60px 20px;
+            padding: 10rem 2rem 6rem;
             text-align: center;
+            background: radial-gradient(circle at center, rgba(44, 37, 0, 0.6) 0%, rgba(12, 12, 12, 0.4) 100%);
+            min-height: 80vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            min-height: 75vh;
-            background: linear-gradient(180deg, rgba(43, 27, 23, 0.8) 0%, rgba(43, 27, 23, 0.95) 100%), 
-                        url('https://images.unsplash.com/photo-1518635017498-87f514b751ba?auto=format&fit=crop&w=1200&q=80');
-            background-size: cover;
-            background-position: center;
-            border-radius: 0 0 24px 24px;
-            overflow: hidden;
-        }
-
-        .hero::before {
-            content: '';
-            position: absolute;
-            top: -10%;
-            left: -10%;
-            width: 120%;
-            height: 120%;
-            background: radial-gradient(circle, rgba(46, 125, 50, 0.15) 0%, transparent 60%);
-            pointer-events: none;
-        }
-
-        .hero-content {
-            position: relative;
-            z-index: 2;
+            align-items: center;
         }
 
         .hero h1 {
-            font-size: 36px;
+            font-size: 3rem;
             font-weight: 800;
-            line-height: 1.3;
-            margin-bottom: 20px;
-            letter-spacing: -1px;
-            text-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.7);
         }
 
         .hero h1 span {
-            color: #E62A4D;
+            color: var(--primary-yellow);
         }
 
         .hero p {
-            font-size: 16px;
-            color: rgba(245, 245, 240, 0.9);
-            margin-bottom: 40px;
-            word-break: keep-all;
-            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
-        /* CTA Button Container */
-        .cta-container {
-            position: relative;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            z-index: 2;
-        }
-
-        .cta-btn {
-            background-color: #E62A4D;
-            color: #F5F5F0;
-            font-size: 18px;
+        .cta-button {
+            display: inline-block;
+            background-color: var(--primary-yellow);
+            color: #000000;
+            padding: 1rem 2.5rem;
+            font-size: 1.2rem;
             font-weight: 700;
-            padding: 16px 40px;
-            border-radius: 30px;
-            border: none;
+            text-decoration: none;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(230, 42, 77, 0.4);
-            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            width: 100%;
-            max-width: 320px;
+            border: none;
         }
 
-        .cta-btn:active {
-            transform: scale(0.95);
+        .cta-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(255, 215, 0, 0.6);
         }
 
-        .cta-btn.clicked {
-            background-color: #FF7E36;
-            box-shadow: 0 4px 15px rgba(255, 126, 54, 0.5);
+        .cta-button:active {
+            transform: translateY(-1px);
         }
 
-        .strawberry-img-pop {
-            width: 140px;
-            height: 140px;
-            object-fit: cover;
-            border-radius: 50%;
-            border: 4px solid #FF7E36;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            display: none;
-            animation: popUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        /* Price Tag Style */
+        .price-tag {
+            margin-top: 1.2rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
         }
 
-        @keyframes popUp {
-            0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        .price-tag span {
+            color: var(--primary-yellow);
+            font-size: 1.6rem;
         }
-
-        /* Section 공통 타이틀 */
-        .section-title {
-            font-size: 24px;
-            font-weight: 800;
-            margin-bottom: 20px;
-            text-align: left;
-            color: #F5F5F0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .section-title span { color: #E62A4D; }
 
         /* Features Section */
         .features {
-            max-width: 768px;
+            padding: 5rem 2rem;
+            max-width: 1200px;
             margin: 0 auto;
-            padding: 40px 20px 20px 20px;
         }
 
-        .card-list {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
         }
 
         .card {
-            position: relative;
-            background: rgba(245, 245, 240, 0.04);
-            border: 1px solid rgba(245, 245, 240, 0.08);
+            background-color: var(--card-bg);
+            border: 1px solid #2A2A2A;
             border-radius: 16px;
-            padding: 24px;
-            transition: all 0.3s ease;
-            overflow: hidden;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            transition: transform 0.3s, border-color 0.3s, background-color 0.3s;
             cursor: pointer;
+            position: relative;
+            backdrop-filter: blur(10px);
         }
 
         .card:hover {
-            border-color: #FF7E36;
-            background: rgba(245, 245, 240, 0.07);
-            transform: translateY(-2px);
+            transform: translateY(-5px);
+            border-color: var(--primary-yellow);
+            background-color: rgba(40, 40, 40, 0.9);
         }
 
-        /* 산지직송 야르 시그니처 테두리 강조 스타일 유지 */
-        .card.direct-ship {
-            border: 1px solid rgba(230, 42, 77, 0.3);
-        }
-        .card.direct-ship:hover {
-            border-color: #E62A4D;
+        .card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            transition: transform 0.3s;
         }
 
-        .card-icon {
-            font-size: 32px;
-            margin-bottom: 12px;
+        .card:hover .icon {
+            transform: scale(1.2);
         }
 
         .card h3 {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #F5F5F0;
-        }
-
-        .card h3 span {
-            color: #FF7E36;
-        }
-        .card.direct-ship h3 span {
-            color: #E62A4D;
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+            color: #ffffff;
         }
 
         .card p {
-            font-size: 14px;
-            color: rgba(245, 245, 240, 0.7);
-            word-break: keep-all;
+            color: var(--text-muted);
+            font-size: 0.95rem;
         }
 
-        .floating-strawberry {
-            position: absolute;
-            right: -30px;
-            bottom: -30px;
-            font-size: 56px;
-            opacity: 0;
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            pointer-events: none;
-        }
-
-        .card:hover .floating-strawberry {
-            right: 20px;
-            bottom: 15px;
-            opacity: 1;
-            transform: scale(1.2) rotate(-15deg);
-        }
-
-        /* 야르 카드 클릭 시 팝업되는 거대 딸기 애니메이션 스타일 레이어 */
-        .click-strawberry-burst {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0);
-            font-size: 150px;
-            z-index: 9999;
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .click-strawberry-burst.pop {
-            animation: burst 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes burst {
-            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
-            50% { transform: translate(-50%, -50%) scale(1.3); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-
-        /* 🏡 농장 갤러리 섹션 */
-        .farm-gallery {
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-
-        .farm-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .farm-card {
-            background-color: #FFFFFF;
-            color: #2B1B17;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            border: 2px solid transparent;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            cursor: pointer;
-        }
-
-        .farm-card:hover {
-            border-color: #E62A4D;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 28px rgba(230, 42, 77, 0.15);
-        }
-
-        .farm-card h4 {
-            font-size: 20px;
-            font-weight: 800;
-            color: #2B1B17;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .farm-card p {
-            font-size: 14px;
-            color: #555555;
-            margin-bottom: 6px;
-            word-break: keep-all;
-        }
-
-        .farm-card p strong {
-            color: #2B1B17;
-        }
-
-        .farm-badge {
-            display: inline-block;
-            font-size: 12px;
+        .card .highlight {
+            color: var(--primary-yellow);
             font-weight: 700;
-            padding: 4px 10px;
-            border-radius: 20px;
-            background-color: rgba(255, 126, 54, 0.1);
-            color: #FF7E36;
-            margin-bottom: 12px;
-            align-self: flex-start;
-        }
-
-        .farm-reserve-btn {
-            background-color: #2B1B17;
-            color: #F5F5F0;
-            border: none;
-            border-radius: 10px;
-            padding: 12px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            margin-top: 14px;
-            transition: all 0.2s ease;
-            text-align: center;
-        }
-
-        .farm-card:hover .farm-reserve-btn {
-            background-color: #E62A4D;
-            color: #FFFFFF;
-        }
-
-        /* 📅 재배 타임라인 섹션 */
-        .timeline-section {
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
-
-        .timeline-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-        }
-
-        .timeline-card {
-            background: rgba(245, 245, 240, 0.04);
-            border: 1px solid rgba(245, 245, 240, 0.08);
-            border-radius: 12px;
-            padding: 16px;
-            text-align: center;
-            position: relative;
-            transition: all 0.3s ease;
-            cursor: pointer;
-        }
-
-        .timeline-card h5 {
-            font-size: 16px;
-            font-weight: 800;
-            color: #FF7E36;
-            margin-bottom: 6px;
-        }
-
-        .timeline-card p {
-            font-size: 13px;
-            color: rgba(245, 245, 240, 0.7);
-            word-break: keep-all;
-        }
-
-        .timeline-card.current-month {
-            background: rgba(230, 42, 77, 0.1);
-            border: 2px solid #E62A4D;
-            transform: scale(1.03);
-            box-shadow: 0 0 15px rgba(230, 42, 77, 0.2);
-        }
-
-        .timeline-card.current-month h5 {
-            color: #E62A4D;
-        }
-
-        .timeline-card.current-month p {
-            color: #F5F5F0;
-            font-weight: 600;
-        }
-
-        .current-badge {
-            position: absolute;
-            top: -10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: #E62A4D;
-            color: #FFFFFF;
-            font-size: 10px;
-            font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 10px;
- white-space: nowrap;
-            display: none;
-        }
-
-        .timeline-card.current-month .current-badge {
-            display: block;
-        }
-
-        /* 🔎 품종 가이드 탭 섹션 */
-        .variety-tabs-section {
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 30px 20px 60px 20px;
-        }
-
-        .tabs-header {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 12px;
-        }
-
-        .tab-button {
-            background: rgba(245, 245, 240, 0.05);
-            border: 1px solid rgba(245, 245, 240, 0.1);
-            color: rgba(245, 245, 240, 0.6);
-            padding: 14px;
-            font-size: 15px;
-            font-weight: 700;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .tab-button:hover {
-            color: #F5F5F0;
-            background: rgba(245, 245, 240, 0.08);
-        }
-
-        .tab-button.active {
-            background-color: #E62A4D;
-            color: #FFFFFF;
-            border-color: #E62A4D;
-            box-shadow: 0 4px 12px rgba(230, 42, 77, 0.2);
-        }
-
-        .tabs-content-wrapper {
-            background-color: #FFFFFF;
-            color: #2B1B17;
-            border-radius: 16px;
-            padding: 28px;
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-            min-height: 140px;
-        }
-
-        .tab-pane {
-            display: none;
-            animation: paneFade 0.3s ease forwards;
-        }
-
-        .tab-pane.active {
-            display: block;
-        }
-
-        @keyframes paneFade {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .tab-pane h4 {
-            font-size: 22px;
-            font-weight: 800;
-            color: #E62A4D;
-            margin-bottom: 10px;
-        }
-
-        .tab-pane p {
-            font-size: 15px;
-            color: #444444;
-            line-height: 1.6;
-            word-break: keep-all;
-        }
-
-        /* 서브 페이지 공통 콘텐츠 스타일 레이아웃 */
-        .sub-page-container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 40px 20px 80px 20px;
-        }
-
-        .back-btn {
-            background: none;
-            border: none;
-            color: #FF7E36;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-bottom: 30px;
-        }
-
-        .sub-page-container h2 {
-            font-size: 28px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            color: #F5F5F0;
-        }
-
-        .sub-page-container h2 span {
-            color: #E62A4D;
-        }
-
-        .sub-page-container .subtitle-desc {
-            font-size: 15px;
-            color: rgba(245, 245, 240, 0.6);
-            margin-bottom: 35px;
-            word-break: keep-all;
-        }
-
-        /* 주소창 특화 디자인 가이드 (처음 버전 그대로 복원) */
-        .sub-page-container .desc {
-            font-size: 14px;
-            color: rgba(245, 245, 240, 0.6);
-            margin-bottom: 30px;
-        }
-
-        .info-section {
-            background: rgba(245, 245, 240, 0.03);
-            border: 1px solid rgba(245, 245, 240, 0.08);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 24px;
-        }
-
-        .info-section h4 {
-            font-size: 18px;
-            font-weight: 700;
-            margin-bottom: 14px;
-            color: #FF7E36;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .info-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-        }
-
-        .info-list li {
-            font-size: 15px;
-            color: rgba(245, 245, 240, 0.85);
-            line-height: 1.5;
-            word-break: keep-all;
-        }
-
-        .info-list li strong {
-            color: #F5F5F0;
-            display: block;
-            margin-bottom: 2px;
-            font-size: 16px;
-        }
-
-        /* 처음 화면 주소 입력 폼 스타일 완벽 복원 */
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            font-size: 14px;
-            font-weight: 600;
-            color: rgba(245, 245, 240, 0.8);
-        }
-
-        .form-group input {
-            background: rgba(245, 245, 240, 0.05);
-            border: 1px solid rgba(245, 245, 240, 0.15);
-            border-radius: 12px;
-            padding: 16px;
-            color: #F5F5F0;
-            font-size: 15px;
-            transition: all 0.2s ease;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #E62A4D;
-            background: rgba(245, 245, 240, 0.08);
-            box-shadow: 0 0 10px rgba(230, 42, 77, 0.15);
-        }
-
-        .submit-btn {
-            background-color: #E62A4D;
-            color: #F5F5F0;
-            font-size: 16px;
-            font-weight: 700;
-            padding: 16px;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-            box-shadow: 0 4px 12px rgba(230, 42, 77, 0.2);
-            transition: all 0.2s ease;
-        }
-
-        .submit-btn:active {
-            transform: scale(0.98);
-            background-color: #cc2242;
-        }
-
-        .security-badge-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 15px;
-        }
-
-        .badge-item {
-            background: rgba(230, 42, 77, 0.05);
-            border: 1px dashed rgba(230, 42, 77, 0.2);
-            border-radius: 12px;
-            padding: 14px;
-            text-align: center;
-        }
-
-        .badge-item .b-icon { font-size: 24px; margin-bottom: 4px; }
-        .badge-item .b-title { font-size: 13px; font-weight: 700; color: #F5F5F0; }
-
-        /* 자바스크립트 분수 효과용 입자 스타일 */
-        .particle {
-            position: fixed;
-            pointer-events: none;
-            opacity: 1;
-            z-index: 9999;
-            font-size: 24px;
-            animation: fall 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-        }
-
-        @keyframes fall {
-            0% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
-            100% { transform: translate(var(--x), var(--y)) scale(0.3) rotate(var(--r)); opacity: 0; }
         }
 
         /* Footer */
         footer {
-            max-width: 768px;
-            margin: 0 auto;
-            padding: 40px 20px;
+            background-color: #0A0A0A;
+            border-top: 1px solid #1A1A1A;
+            padding: 3rem 2rem;
             text-align: center;
-            border-top: 1px solid rgba(245, 245, 240, 0.1);
-            font-size: 14px;
-            color: rgba(245, 245, 240, 0.4);
-            font-weight: 700;
-            letter-spacing: 1px;
+            position: relative;
+            z-index: 10;
         }
 
+        .footer-logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #555555;
+            letter-spacing: 2px;
+        }
+
+        /* Pop-out Emoji Animation Canvas */
+        .emoji-burst {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            font-size: 10rem;
+            z-index: 2000;
+            pointer-events: none;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .emoji-burst.active {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1.5);
+            animation: explode 0.6s forwards;
+        }
+
+        @keyframes explode {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            50% { transform: translate(-50%, -50%) scale(1.8); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        /* Modal Sub-Pages (다음 창 형식) */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(10, 10, 10, 0.95);
+            z-index: 1500;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            padding: 1rem;
+        }
+
+        .modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-content {
+            background-color: #1E1E1E;
+            border: 2px solid var(--primary-yellow);
+            border-radius: 20px;
+            max-width: 550px;
+            width: 100%;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            transform: translateY(30px);
+            transition: transform 0.4s ease;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--primary-yellow);
+        }
+
+        .modal-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        .modal h2 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary-yellow);
+        }
+
+        /* Form styling for address modal */
+        .address-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .address-form input {
+            background-color: #121212;
+            border: 1px solid #333;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .address-form input:focus {
+            border-color: var(--primary-yellow);
+            outline: none;
+        }
+
+        /* Info container styling for car modal */
+        .car-info-box {
+            background-color: #121212;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: left;
+            margin-top: 1.5rem;
+            font-size: 0.95rem;
+            border-left: 4px solid var(--primary-yellow);
+        }
+
+        .car-info-box ul {
+            margin-top: 0.5rem;
+            padding-left: 1.2rem;
+        }
+
+        .car-info-box li {
+            margin-bottom: 0.3rem;
+        }
+
+        /* Responsive Styles */
         @media (max-width: 768px) {
-            .hero h1 { font-size: 32px; }
-            .farm-grid { grid-template-columns: 1fr; }
-            .timeline-grid { grid-template-columns: 1fr 1fr; }
-            .security-badge-grid { grid-template-columns: 1fr; }
+            header {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .slogan {
+                font-size: 0.8rem;
+            }
+
+            .hero {
+                padding: 8rem 1rem 4rem;
+            }
+
+            .hero h1 {
+                font-size: 2rem;
+            }
+
+            .hero p {
+                font-size: 1;
+                margin-bottom: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .card {
+                padding: 2rem 1.5rem;
+            }
+
+            .modal-content {
+                padding: 2rem 1.5rem;
+            }
         }
     </style>
 </head>
 <body>
 
-    <div class="click-strawberry-burst" id="burstStrawberry">🍓</div>
+    <header>
+        <div class="logo">딸깍</div>
+        <div class="slogan">[딸깍 한번, 인생 역전]</div>
+    </header>
 
-    <div id="mainPage" class="page active">
-        <header>
-            <div class="logo-group">
-                <span class="logo">딸깍 🍓</span>
-                <span class="slogan">[딸기 야호~]</span>
-            </div>
-        </header>
+    <section class="hero">
+        <h1>망설이는 순간<br><span>인생 역전</span>의 기회는 지나갑니다</h1>
+        <p>무엇이 나올지 모르는 극강의 설렘. 당신의 평범한 일상을 단 한 번의 터치로 완벽하게 뒤바꿀 럭키 박스가 지금 도착했습니다.</p>
+        <button class="cta-button" onclick="alert('딸깍 주문 완료. 행운 배송')">지금 주문하기</button>
+        <div class="price-tag">판매가: <span>10,000원</span></div>
+    </section>
 
-        <section class="hero">
-            <div class="hero-content">
-                <h1>AI로 딸깍하면<br><span>논산 딸기</span>가 내 손에</h1>
-                <p>대한민국 No.1 주산지 논산에서 갓 수확한 국가대표 설향 딸기를 지금 가장 신선한 숏폼 브이로그 감성으로 만나보세요.</p>
+    <section class="features">
+        <div class="grid">
+            <div class="card" onclick="triggerEffect('🎁', 'modal-address')">
+                <span class="icon">📍</span>
+                <h3>주소는 제대로 적으셨나요?</h3>
+                <p>외계인이 가로채지 않게 <span class="highlight">정확한 주소</span>를 입력해 주세요. 잘못 쓰시면 옆집 김두한 씨가 인생 역전할 수도 있습니다.</p>
             </div>
-            <div class="cta-container">
-                <img src="https://images.unsplash.com/photo-1464965911861-746a04b4bca6?auto=format&fit=crop&w=400&q=80" alt="싱싱한 논산 딸기" class="strawberry-img-pop" id="popStrawberry">
-                <button class="cta-btn" id="orderBtn">지금 주문하기</button>
+            <div class="card" onclick="triggerEffect('🏎️', 'modal-car')">
+                <span class="icon">💎</span>
+                <h3>최대 2억 5천만 원 상당</h3>
+                <p>상상 그 이상의 초호화 라인업! <span class="highlight">최대 2억 5천만 원</span> 상당의 역대급 상품이 당신을 기다리고 있습니다.</p>
             </div>
-        </section>
+            <div class="card" onclick="triggerEffect('🔒', 'modal-security')">
+                <span class="icon">🔒</span>
+                <h3>완벽하게 철저한 보안</h3>
+                <p>개인정보 유출 걱정은 끝! 강력한 암호화 시스템으로 <span class="highlight">개인정보와 사이트 안전성</span>을 완벽하게 보장합니다.</p>
+            </div>
+        </div>
+    </section>
 
-        <section class="features">
-            <h3 class="section-title">✨ AI 추천 <span>딸깍 가이드</span></h3>
-            <div class="card-list">
-                <div class="card direct-ship" id="card1">
-                    <div class="card-icon">🚀</div>
-                    <h3>신선 산지직송 <span>야르</span></h3>
-                    <p>새벽에 수확한 논산 딸기를 산지에서 집 앞까지 가장 빠르게 직송합니다. <strong>[여기 딸깍하고 주소 입력하기]</strong></p>
-                    <div class="floating-strawberry">🍓</div>
-                </div>
-                <div class="card" id="card2">
-                    <div class="card-icon">🍓</div>
-                    <h3>최고 품질 설향 <span>느좋</span></h3>
-                    <p>과즙 폭발, 달콤함 치도곤! 전체 생산의 85%를 차지하는 오리지널 설향 품종만 엄선하여 트렌디하고 느낌 좋은 단맛을 선사합니다.</p>
-                    <div class="floating-strawberry">🍓</div>
-                </div>
-                <div class="card" id="card3">
-                    <div class="card-icon">👑</div>
-                    <h3>논산 <span>1위</span> 생산지</h3>
-                    <p>전국 최대 딸기 메카, 90년 재배 노하우와 첨단 스마트팜 기술이 결합되어 비교 불가능한 상위 1% 명품 딸기만을 생산합니다.</p>
-                    <div class="floating-strawberry">🍓</div>
-                </div>
-            </div>
-        </section>
+    <footer>
+        <div class="footer-logo">딸깍</div>
+    </footer>
 
-        <section class="variety-tabs-section">
-            <h3 class="section-title">🔎 프리미엄 <span>품종 도감</span></h3>
-            <div class="tabs-header">
-                <button class="tab-button active" data-tab="seolhyang">설향</button>
-                <button class="tab-button" data-tab="jukhyang">죽향</button>
-                <button class="tab-button" data-tab="geumsil">금실</button>
-            </div>
-            <div class="tabs-content-wrapper">
-                <div class="tab-pane active" id="seolhyang">
-                    <h4>설향 (雪香)</h4>
-                    <p>전체 생산량의 85%를 차지하는 원조 메인스트림 품종입니다. 입안 가득 터지는 달콤한 맛และ 향기로운 풍미가 일품이며, 과즙이 풍부해 압도적인 대중성을 자랑합니다.</p>
-                </div>
-                <div class="tab-pane" id="jukhyang">
-                    <h4>죽향 (竹香)</h4>
-                    <p>진하고 깊은 오리지널 명품 딸기 향이 특징인 고급 품종입니다. 당도와 신맛의 황금 밸런스를 지니고 있어 프리미엄 미식가들 사이에서 선호도가 매우 높습니다.</p>
-                </div>
-                <div class="tab-pane" id="geumsil">
-                    <h4>금실 (金實)</h4>
-                    <p>과육이 매우 단단하고 쫀쫀하여 씹는 식감이 일품인 품종입니다. 새콤달콤한 맛의 조화가 진하게 어우러져 쉽게 무르지 않고 신선함이 오랫동안 유지됩니다.</p>
-                </div>
-            </div>
-        </section>
+    <div id="burst-container" class="emoji-burst">🎁</div>
 
-        <section class="timeline-section">
-            <h3 class="section-title">📅 연간 <span>출하 타임라인</span></h3>
-            <div class="timeline-grid">
-                <div class="timeline-card" data-months="11">
-                    <div class="current-badge">NOW</div>
-                    <h5>11월</h5>
-                    <p>파종 및 정식</p>
-                </div>
-                <div class="timeline-card" data-months="12,1">
-                    <div class="current-badge">NOW</div>
-                    <h5>12월~1월</h5>
-                    <p>겨울 초기 출하</p>
-                </div>
-                <div class="timeline-card" data-months="2,3">
-                    <div class="current-badge">NOW</div>
-                    <h5>2월~3월</h5>
-                    <p>최성수기 (설향)</p>
-                </div>
-                <div class="timeline-card" data-months="4,5">
-                    <div class="current-badge">NOW</div>
-                    <h5>4월~5월</h5>
-                    <p>봄 시즌 마무리</p>
-                </div>
-            </div>
-        </section>
-
-        <section class="farm-gallery">
-            <h3 class="section-title">🏡 로컬 <span>명품 농장 갤러리</span></h3>
-            <div class="farm-grid">
-                <div class="farm-card">
-                    <div>
-                        <div class="farm-badge">체험 + 직판</div>
-                        <h4>연산 딸기 농장 <span>🍓</span></h4>
-                        <p>📍 <strong>주소:</strong> 충남 논산시 연산면</p>
-                        <p>⏰ <strong>시간:</strong> 주말 09:00 ~ 17:00</p>
-                    </div>
-                    <button class="farm-reserve-btn">딸깍 예약하기</button>
-                </div>
-                <div class="farm-card">
-                    <div>
-                        <div class="farm-badge" style="background-color:rgba(230,42,77,0.05); color:#E62A4D;">직판 전용</div>
-                        <h4>부적 딸기 농장 <span>🍓</span></h4>
-                        <p>📍 <strong>주소:</strong> 충남 논산시 부적면</p>
-                        <p>⏰ <strong>시간:</strong> 평일 10:00 ~ 18:00</p>
-                    </div>
-                    <button class="farm-reserve-btn">딸깍 예약하기</button>
-                </div>
-                <div class="farm-card">
-                    <div>
-                        <div class="farm-badge" style="background-color:rgba(76,175,80,0.1); color:#4CAF50;">카페 + 체험</div>
-                        <h4>도심 체험장 <span>🍓</span></h4>
-                        <p>📍 <strong>주소:</strong> 충남 논산시 시내</p>
-                        <p>⏰ <strong>시간:</strong> 매일 11:00 ~ 20:00</p>
-                    </div>
-                    <button class="farm-reserve-btn">딸깍 예약하기</button>
-                </div>
-            </div>
-        </section>
-
-        <footer>딸깍 (DDAL-KKAK)</footer>
-    </div>
-
-    <div id="addressPage" class="page">
-        <div class="sub-page-container">
-            <button class="back-btn" id="backToMain">← 돌아가기</button>
-            <h2><span>배송지</span> 딸깍 입력</h2>
-            <p class="desc">논산 산지에서 새벽에 바로 출하될 싱싱한 딸기 배송 주소를 적어주세요!</p>
-            
-            <form id="addressForm" onsubmit="event.preventDefault();">
-                <div class="form-group">
-                    <label for="userName">받으실 분 성함</label>
-                    <input type="text" id="userName" placeholder="이름을 입력해 주세요" required>
-                </div>
-                <div class="form-group">
-                    <label for="userPhone">연락처</label>
-                    <input type="tel" id="userPhone" placeholder="010-0000-0000" required>
-                </div>
-                <div class="form-group">
-                    <label for="userAddress">배송 주소</label>
-                    <input type="text" id="userAddress" placeholder="상세 주소까지 정확히 입력해 주세요" required>
-                </div>
-                <button type="submit" class="submit-btn" id="submitAddressBtn">산지직송 신청하기 🍓</button>
+    <div id="modal-address" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('modal-address')">&times;</button>
+            <span class="modal-icon">🎁</span>
+            <h2>인생 역전 수령 주소 입력</h2>
+            <p>옆집 김두한 씨가 채가지 못하도록 꼼꼼하게 적어주세요!</p>
+            <form class="address-form" onsubmit="event.preventDefault(); alert('딸깍 주문 완료. 행운 배송'); closeModal('modal-address');">
+                <input type="text" placeholder="받으실 분 성함" required>
+                <input type="text" placeholder="정확한 배송지 주소" required>
+                <input type="text" placeholder="연락처 (- 제외)" required>
+                <button type="submit" class="cta-button" style="font-size:1rem; padding: 0.8rem;">주소 입력 완료</button>
             </form>
         </div>
     </div>
 
-    <div id="qualityPage" class="page">
-        <div class="sub-page-container">
-            <button class="back-btn">← 돌아가기</button>
-            <h2>품질 대박 <span>설향 느좋의 비밀</span></h2>
-            <p class="subtitle-desc">왜 논산 설향 딸기가 상위 1% 프리미엄 가치를 지니는지 확인해 보세요.</p>
-            
-            <div class="info-section">
-                <h4>✨ 얼마나 최고 품질인가요?</h4>
-                <ul class="info-list">
-                    <li><strong>비파괴 당도 선별 시스템</strong>평균 12 브릭스(Brix) 이상의 고당도 명품 딸기만을 엄선하여 첫 입부터 끝까지 균일한 극상의 달콤함을 선사합니다.</li>
-                    <li><strong>천연 벌 수정 공법</strong>인위적인 수정이 아닌 꿀벌을 이용한 친환경 자연 수정을 거쳐 기형 없이 과육이 꽉 찬 하트 모양의 정형과만을 수확합니다.</li>
+    <div id="modal-car" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('modal-car')">&times;</button>
+            <span class="modal-icon">🏎️</span>
+            <h2>당첨 상품: 람보르기니 안내</h2>
+            <p>최대 2억 5천만 원 상당의 럭셔리 슈퍼카 라인업의 상세 정보입니다.</p>
+            <div class="car-info-box">
+                <strong>[차량 정보 및 제공 모델]</strong>
+                <ul>
+                    <li>우라칸 에보 차세대 커스텀 에디션 탑재</li>
+                    <li>최고 출력 640마력, 제로백 2.9초의 괴물 스펙</li>
+                    <li>상징적인 시그니처 옐로우 컬러 도색 지원</li>
                 </ul>
-            </div>
-
-            <div class="info-section">
-                <h4>🍓 설향 품종 고유의 장점</h4>
-                <ul class="info-list">
-                    <li><strong>풍부한 천연 과즙</strong>타 품종 대비 과즙의 양이 풍부하여 입안 가득 시원하고 상큼한 청량감을 뿜어냅니다.</li>
-                    <li><strong>황금 단맛 신맛 밸런스</strong>신맛이 매우 적고 부드러운 단맛이 입안을 가득 채워 누구나 호불호 없이 즐길 수 있는 원조 K-딸기입니다.</li>
-                </ul>
-            </div>
-
-            <div class="info-section">
-                <h4>💪 딸깍 딸기가 주는 건강한 효과</h4>
-                <ul class="info-list">
-                    <li><strong>피부 미용 및 피로 회복 (비타민C 폭탄)</strong>딸기 6~7알이면 하루 필요한 비타민 C를 완벽하게 충족! 레몬의 2배에 달해 활력 충전 및 맑은 피부 톤 유지에 도움을 줍니다.</li>
-                    <li><strong>혈관 건강 및 노화 방지</strong>붉은빛을 내는 안토시아닌 성분이 활성산소를 억제하고 혈관 내 노폐물을 제거해 신체 속부터 젊어지게 만듭니다.</li>
-                    <li><strong>눈 건강 및 임산부 필수 엽산 충족</strong>시력을 보호하는 비타민 A 계열과 임산부 및 성장기 아이들에게 필수적인 엽산이 풍부하게 함유되어 있습니다.</li>
-                </ul>
+                <br>
+                <strong>[📦 배송 안내 사항 - 필독!]</strong>
+                <p style="color: var(--primary-yellow); margin-top: 0.3rem;">
+                    랜덤박스 패키지 내부에는 <strong>'람보르기니 실물 스마트 차키'</strong>가 동봉되어 있습니다. 차량 본체는 전문 탁송 기사님을 통해 고객님이 입력하신 주소지로 안전하게 단독 특수 배송됩니다!
+                </p>
             </div>
         </div>
     </div>
 
-    <div id="productionPage" class="page">
-        <div class="sub-page-container">
-            <button class="back-btn">← 돌아가기</button>
-            <h2>전국 1위 <span>생산량과 안전성</span></h2>
-            <p class="subtitle-desc">가장 큰 스케일의 메카에서 가장 안전한 보안 및 검증 시스템을 통해 투명하게 운영됩니다.</p>
-
-            <div class="info-section">
-                <h4>📊 숫자로 보는 논산 딸기 생산 위엄</h4>
-                <ul class="info-list">
-                    <li><strong>국내 최대 주산지의 압도적 스케일</strong>논산은 연간 약 3만 톤 이상을 생산해 내는 대한민국 대표 딸기 수도이며, 국내 총 생산량의 15% 이상이 오직 논산에서만 탄생합니다.</li>
-                    <li><strong>수출 활성화 K-푸드 대표 주자</strong>국내뿐만 아니라 전 세계 10여 개국으로 수출되며 맛과 퀄리티를 세계적으로 입증받은 글로벌 딸기입니다.</li>
-                </ul>
-            </div>
-
-            <div class="info-section">
-                <h4>🔒 안심하고 딸깍! 사이트 안정성 및 먹거리 신뢰</h4>
-                <ul class="info-list">
-                    <li><strong>100% GAP(농산물우수관리) 안전 인증</strong>모든 유통 과정과 스마트팜 재배 환경은 국가 인증 토양 및 용수 검사를 정기적으로 통과한 100% 안심 먹거리만을 취급합니다.</li>
-                    <li><strong>실시간 신선 배송 추적 및 보상 정책</strong>산지 직배송 유통망과 실시간 콜드체인 추적을 결합하여, 만약 배송 중 이상이 생길 시 100% 신속 교환/환불을 보장하는 안심 케어 시스템을 운영합니다.</li>
-                    <li><strong>차세대 데이터 보안 시스템 구축</strong>사용자의 소중한 개인정보와 주소 데이터는 256비트 암호화 및 실시간 개인정보 파기 솔루션을 통해 안전하게 보호되니 안심하고 주문하셔도 좋습니다.</li>
-                </ul>
-
-                <div class="security-badge-grid">
-                    <div class="badge-item">
-                        <div class="b-icon">🛡️</div>
-                        <div class="b-title">GAP 인증 완비</div>
-                    </div>
-                    <div class="badge-item">
-                        <div class="b-icon">💳</div>
-                        <div class="b-title">안심 안전 결제</div>
-                    </div>
-                </div>
+    <div id="modal-security" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal('modal-security')">&times;</button>
+            <span class="modal-icon">🔒</span>
+            <h2>100% 안심 보안 시스템</h2>
+            <p>딸깍은 이용자의 안전을 최우선 가치로 생각합니다.</p>
+            <div class="car-info-box" style="border-left-color: #00E676;">
+                <p><strong>✓ 군사급 종단간 암호화(E2EE)</strong><br>입력하시는 주소와 개인 정보는 데이터 전송 즉시 파쇄 수준으로 암호화되어 그 누구도 열람할 수 없습니다.</p>
+                <br>
+                <p><strong>✓ 실시간 불법 해킹 차단 모니터링</strong><br>24시간 가동되는 화이트해커 보안관제 팀이 외부 공격을 원천 봉쇄하여 사이트의 안전성을 완벽히 보장합니다.</p>
             </div>
         </div>
     </div>
 
     <script>
-        // DOM 요소 정의
-        const orderBtn = document.getElementById('orderBtn');
-        const popStrawberry = document.getElementById('popStrawberry');
-        
-        const card1 = document.getElementById('card1');
-        const card2 = document.getElementById('card2');
-        const card3 = document.getElementById('card3');
-        
-        const mainPage = document.getElementById('mainPage');
-        const addressPage = document.getElementById('addressPage');
-        const qualityPage = document.getElementById('qualityPage');
-        const productionPage = document.getElementById('productionPage');
-        
-        const backButtons = document.querySelectorAll('.back-btn');
-        const burstStrawberry = document.getElementById('burstStrawberry');
+        function triggerEffect(emoji, modalId) {
+            const burst = document.getElementById('burst-container');
+            burst.innerText = emoji;
+            burst.classList.add('active');
 
-        // 1. CTA 버튼 상호작용
-        orderBtn.addEventListener('click', function() {
-            popStrawberry.style.display = 'block';
-            this.classList.toggle('clicked');
-            if(this.classList.contains('clicked')) {
-                this.textContent = '주문 완료! 딸깍 완료! 🧡';
-            } else {
-                this.textContent = '지금 주문하기';
-                popStrawberry.style.display = 'none';
-            }
-        });
-
-        // 2. 사방으로 튀어나오는 딸기 파티클 생성 함수
-        function createStrawberryRain(e, count = 12) {
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            
-            let startX, startY;
-            
-            if (clientX && clientY) {
-                startX = window.scrollX + clientX;
-                startY = window.scrollY + clientY;
-            } else {
-                const rect = e.currentTarget.getBoundingClientRect();
-                startX = window.scrollX + rect.left + rect.width / 2;
-                startY = window.scrollY + rect.top + rect.height / 2;
-            }
-
-            for (let i = 0; i < count; i++) {
-                const p = document.createElement('div');
-                p.classList.add('particle');
-                p.textContent = '🍓';
-                p.style.left = startX + 'px';
-                p.style.top = startY + 'px';
-
-                const angle = Math.random() * Math.PI * 2;
-                const distance = 60 + Math.random() * 140;
-                const x = Math.cos(angle) * distance;
-                const y = Math.sin(angle) * distance - 40;
-                const r = Math.random() * 360;
-
-                p.style.setProperty('--x', `${x}px`);
-                p.style.setProperty('--y', `${y}px`);
-                p.style.setProperty('--r', `${r}deg`);
-
-                document.body.appendChild(p);
-                setTimeout(() => p.remove(), 1000);
-            }
-        }
-
-        // 3. 네비게이션 페이지 전환 기능
-        function switchPage(targetPage) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            targetPage.classList.add('active');
-            window.scrollTo(0, 0);
-        }
-
-        // 첫 번째 카드 (산지직송 야르) 클릭 시 최초의 거대 딸기 애니메이션 + 페이지 연동 복원
-        card1.addEventListener('click', function(e) {
-            // 거대 딸기 이모지 사방 중심 팡 튀어남 효과 부여
-            burstStrawberry.classList.add('pop');
-
-            // 애니메이션 중간 지점 타이밍 맞춰 첫 레이아웃 화면(주소창)으로 체인지
+            // 이모지 팝업 애니메이션(0.6초)이 끝날 때쯤 상세 모달 창 띄우기
             setTimeout(() => {
-                switchPage(addressPage);
-            }, 400);
-
-            // 이펙트 클래스 초기화 리셋
-            setTimeout(() => {
-                burstStrawberry.classList.remove('pop');
-            }, 800);
-        });
-
-        // 두 번째 카드 클릭 시 (거대 분수 이펙트 유지)
-        card2.addEventListener('click', function(e) {
-            createStrawberryRain(e, 35);
-            setTimeout(() => switchPage(qualityPage), 500);
-        });
-
-        // 세 번째 카드 클릭 시
-        card3.addEventListener('click', function(e) {
-            createStrawberryRain(e, 15);
-            setTimeout(() => switchPage(productionPage), 400);
-        });
-
-        // 돌아가기 내비게이션 연동
-        backButtons.forEach(btn => {
-            btn.addEventListener('click', () => switchPage(mainPage));
-        });
-
-        // 주소 전송 전송 리스너
-        document.getElementById('addressForm').addEventListener('submit', function() {
-            alert('🚀 산지직송 신청이 정상적으로 딸깍 완료되었습니다! 새벽 수확 후 발송됩니다.');
-            switchPage(mainPage);
-        });
-
-        // 농장 카드 클릭 연동 제어
-        document.querySelectorAll('.farm-card').forEach(card => {
-            card.addEventListener('click', function(e) {
-                createStrawberryRain(e, 12);
-                const farmName = this.querySelector('h4').childNodes[0].textContent.trim();
-                setTimeout(() => {
-                    alert(`🏡 [${farmName}] 실시간 방문 및 체험 예약이 딸깍 완료되었습니다!`);
-                }, 300);
-            });
-        });
-
-        // 타임라인 월별 데이터 트래킹 및 활성화 로직
-        function highlightCurrentMonthTimeline() {
-            const currentMonth = new Date().getMonth() + 1;
-            const timelineCards = document.querySelectorAll('.timeline-card');
-
-            timelineCards.forEach(card => {
-                const monthsAttr = card.getAttribute('data-months').split(',');
-                if (monthsAttr.includes(currentMonth.toString())) {
-                    card.classList.add('current-month');
-                }
-                card.addEventListener('click', function(e) {
-                    createStrawberryRain(e, 12);
-                });
-            });
+                burst.classList.remove('active');
+                document.getElementById(modalId).classList.add('show');
+            }, 550);
         }
-        highlightCurrentMonthTimeline();
 
-        // 품종 선택 탭 인터랙션 제어
-        const tabButtons = document.querySelectorAll('.tab-button');
-        const tabPanes = document.querySelectorAll('.tab-pane');
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
 
-        tabButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                createStrawberryRain(e, 8);
-                tabButtons.forEach(btn => btn.classList.remove('active'));
-                this.classList.add('active');
-
-                const targetId = this.getAttribute('data-tab');
-                tabPanes.forEach(pane => {
-                    if (pane.id === targetId) {
-                        pane.classList.add('active');
-                    } else {
-                        pane.classList.remove('active');
-                    }
-                });
-            });
-        });
+        // 모달 바깥 배경 클릭 시 창 닫기 기능
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('show');
+            }
+        }
     </script>
 </body>
 </html>
